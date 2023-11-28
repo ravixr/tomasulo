@@ -21,7 +21,7 @@ The file must be in the following format:
 ```
 or
 ```
-<op> <dest>, <src1>, <imm>(<src2>)
+<op> <dest/src>, <imm>(<src>)
 ```
 
 where:
