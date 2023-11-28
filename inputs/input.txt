@@ -1,0 +1,8 @@
+mul r0, r1, r2
+sw r4, 0(r1)
+add r3, r0, r1
+sub r3, r1, r2
+add r5, r3, r1
+add r6, r2, r8
+add r6, r7, r8
+add r3, r8, r9

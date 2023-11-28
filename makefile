@@ -1,6 +1,6 @@
 CXX = g++
-CFLAGS_DEBUG = -g -Wall -Wextra -pedantic -std=c++11 -fsanitize=address -fsanitize=undefined -O0
-CFLAGS_RELEASE = -O2 -std=c++11
+CFLAGS_DEBUG = -g -Wall -Wextra -pedantic -fsanitize=address -fsanitize=undefined -O0
+CFLAGS_RELEASE = -O2
 
 SRCS = $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)

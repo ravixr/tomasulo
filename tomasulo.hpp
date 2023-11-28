@@ -2,12 +2,15 @@
 #define TOMASULO_H
 
 #include <deque>
+#include <string>
 
-#define VISIBLE_REGISTERS 10
-#define INVISIBLE_REGISTERS 10
+#define VISIBLE_REGISTERS 12
+#define INVISIBLE_REGISTERS 24
 #define REGISTERS_MAX (VISIBLE_REGISTERS + INVISIBLE_REGISTERS)
 
-enum reg_t { noreg, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, ra, rb, rc, rd, re, rf, rg, rh, ri, rj };
+enum reg_t { noreg, r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, ra, rb, rc, rd, re, rf, rg, rh, ri, rj, rk, rl, rm, rn, ro, rp, rq, rr, rs, rt, ru, rv, rw, rx };
+
+// valid operations
 enum op_t { add, mul, lw, sub, divd, sw };
 enum funum_t { add1, add2, mul1, mul2, load1, load2, store1, store2 };
 enum used_as_t { free_reg, dest, src };
@@ -15,7 +18,7 @@ enum used_as_t { free_reg, dest, src };
 struct regstat_t {
     std::string value;
     used_as_t used_as;
-    int used_by;
+    int dest_used_by;
     reg_t renamed_to;
     reg_t renamed_from;
     int rename_ref_count;
@@ -31,6 +34,7 @@ struct inst_t {
     int issue;
     int exec;
     int write;
+    int commit;
 };
 
 #define add_time 2
@@ -42,8 +46,8 @@ struct inst_t {
 
 
 // Reserve station sizes
+#define ALL_STATIONS 6
 #define STATION_TYPES 3
-
 #define ADD_STATIONS 2
 #define MUL_STATIONS 2
 #define LOAD_STATIONS 2
@@ -57,6 +61,8 @@ struct fu_t {
     int qj;
     int qk;
     int time_left;
+    bool locks1;
+    bool locks2;
 };
 
 #endif // TOMASULO_H
