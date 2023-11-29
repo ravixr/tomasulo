@@ -16,7 +16,7 @@ enum funum_t { add1, add2, mul1, mul2, load1, load2, store1, store2 };
 enum used_as_t { free_reg, dest, src };
 
 struct regstat_t {
-    std::string value;
+    int value;
     used_as_t used_as;
     int dest_used_by;
     reg_t renamed_to;

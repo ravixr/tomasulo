@@ -15,7 +15,7 @@ const std::string str_reg[REGISTERS_MAX + 1] = { "-", "r0", "r1", "r2", "r3", "r
 "ra", "rb", "rc", "rd", "re", "rf", "rg", "rh", "ri", "rj", "rk", "rl", "rm", "rn", "ro", "rp", "rq", "rr", "rs", "rt", "ru", "rv", "rw", "rx" };
 const std::string str_fus[ALL_STATIONS + 1] = { "-", "add1", "add2", "mult1", "mult2", "load1", "load2" };
 
-regstat_t registers[REGISTERS_MAX + 1] = { { "", free_reg, 0, noreg, noreg, 0 }, };
+regstat_t registers[REGISTERS_MAX + 1] = { { -1, free_reg, -1, noreg, noreg, 0 }, };
 
 fu_t add_stations[ADD_STATIONS] = { { 0, false, nullptr, 0, 0, -1, -1, -1, 0, 0 }, };
 fu_t mult_stations[MUL_STATIONS] = { { 0, false, nullptr, 0, 0, -1, -1, -1, 0, 0 }, };
@@ -46,10 +46,7 @@ void init_fus()
 void check_rename(inst_t *i)
 {
     // if false dependecies rename
-    if (registers[i->dest].renamed_to != noreg) {
-        i->dest = registers[i->dest].renamed_to;
-        registers[i->dest].rename_ref_count++;
-    } else if (registers[i->dest].used_as != free_reg) {
+    if (registers[i->dest].used_as != free_reg) {
         reg_t rename = noreg;
         for (int j = VISIBLE_REGISTERS + 1; j <= REGISTERS_MAX; j++) {
             if (registers[j].used_as == free_reg) {
@@ -63,10 +60,7 @@ void check_rename(inst_t *i)
         i->dest = rename;
         registers[i->dest].rename_ref_count++;
     }
-    if (registers[i->src1].renamed_to != noreg) {
-        i->src1 = registers[i->src1].renamed_to;
-        registers[i->src1].rename_ref_count++;
-    } else if (registers[i->src1].used_as == src) {
+    if (registers[i->src1].used_as == src) {
         reg_t rename = noreg;
         for (int j = VISIBLE_REGISTERS + 1; j <= REGISTERS_MAX; j++) {
             if (registers[j].used_as == free_reg) {
@@ -78,12 +72,12 @@ void check_rename(inst_t *i)
         registers[i->src1].renamed_to = rename;
         registers[rename].renamed_from = i->src1;
         i->src1 = rename;
+        if (registers[i->src1].dest_used_by == -1) {
+            registers[i->src1].used_as = src;
+        }
         registers[i->src1].rename_ref_count++;
     }
-    if (registers[i->src2].renamed_to != noreg) {
-        i->src2 = registers[i->src2].renamed_to;
-        registers[i->src2].rename_ref_count++;
-    } else if (registers[i->src2].used_as == src) {
+    if (registers[i->src2].used_as == src) {
         reg_t rename = noreg;
         for (int j = VISIBLE_REGISTERS + 1; j <= REGISTERS_MAX; j++) {
             if (registers[j].used_as == free_reg) {
@@ -95,6 +89,9 @@ void check_rename(inst_t *i)
         registers[i->src2].renamed_to = rename;
         registers[rename].renamed_from = i->src2;
         i->src2 = rename;
+        if (registers[i->src2].dest_used_by == -1) {
+            registers[i->src2].used_as = src;
+        }
         registers[i->src2].rename_ref_count++;
     }
 }
@@ -128,21 +125,21 @@ void undo_rename(reg_t reg)
     if (registers[reg].rename_ref_count > 0) {
         registers[reg].rename_ref_count--;
     }
-    if (registers[reg].rename_ref_count == 0) {
+    if (registers[reg].rename_ref_count == 0 && registers[reg].used_as != dest) {
         registers[reg].used_as = free_reg;
         registers[registers[reg].renamed_from].renamed_to = noreg;
-        registers[registers[reg].renamed_from].value = registers[reg].value;
         registers[reg].renamed_from = noreg;
-        registers[reg].value = "";
+        registers[reg].value = 0;
+        registers[reg].dest_used_by = -1;
     } else if (registers[reg].used_as == dest) {
-        registers[reg].used_as = src;
-        registers[reg].dest_used_by = 0;
+        registers[reg].dest_used_by = -1;
     }
+    registers[registers[reg].renamed_from].value = registers[reg].value;
 }
 
 void exec_fu(fu_t *fu)
 {
-    #define USED_AS_DEST(reg) (registers[reg].used_as == dest)
+    #define USED_AS_DEST(reg) (registers[reg].used_as == dest && registers[reg].dest_used_by != -1 && registers[reg].dest_used_by != fu->id)
     if (fu->busy) {
         // True dependencies
         if (fu->locks1 && USED_AS_DEST(fu->inst->src1)) {
@@ -168,9 +165,7 @@ void exec_fu(fu_t *fu)
         } // Write-back
         else if (fu->time_left == 0) {
             fu->inst->write = ticks;
-            registers[fu->inst->dest].value = std::string("VAL(");
-            registers[fu->inst->dest].value += str_fus[fu->id + 1];
-            registers[fu->inst->dest].value += std::string(")");
+            registers[fu->inst->dest].value = fu->id + 1;
             // undo rename
             undo_rename(fu->inst->dest);
             undo_rename(fu->inst->src1);
